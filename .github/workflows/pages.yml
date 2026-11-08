@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main, claude/donburi-creation-game-u6brg7]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
