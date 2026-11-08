@@ -7,7 +7,8 @@
   color:var(--ink);
 }
 *{box-sizing:border-box}
-html,body{margin:0;height:100%}
+html,body{margin:0;height:100%;touch-action:manipulation}
+.rot{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:700}
 body{
   background:var(--bg);
   background-image:radial-gradient(#ffe0d6 1.4px,transparent 1.6px);

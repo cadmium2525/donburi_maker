@@ -93,13 +93,35 @@ export function clampToSurface(surf, x, y) {
   return [tx, ty];
 }
 
+// 具材の厚み（積み重ね用）
+function thick(it) {
+  const d = ING_MAP[it.id];
+  if (d.blend || d.shadow === 0) return 0;
+  if (d.kind === 'sauce') return d.S < 60 ? 0.5 : 5 * it.s;
+  if (d.kind === 'sprinkle') return Math.min(8, d.S * 0.25) * it.s;
+  return (d.T ?? Math.min(40, d.S * 0.24)) * it.s;
+}
+// 指定位置の一番上の具材の高さ
+export function stackAt(items, x, y) {
+  let h = 0, t = 0;
+  for (const it of items) {
+    const top = (it.h || 0) + thick(it);
+    if (top > h && itemHit(it, x, y)) { h = top; t = thick(it); }
+  }
+  return { h: Math.min(h, 420), t };
+}
+
 export function makeItems(st, def, x, y, size, group, r = Math.random) {
   size *= BASE;
   const surf = surface(st);
   const out = [];
+  const all = st.items;
   const one = (px, py, sc) => {
-    const [cx, cy] = clampToSurface(surf, px, py);
-    out.push({ id: def.id, x: cx, y: cy, s: sc, r: (r() * 2 - 1) * def.rot, v: Math.floor(r() * NV * 4), g: group });
+    const sk = stackAt(all.concat(out), px, py);
+    let cx = px, cy = py;
+    if (sk.h > 0) cy = py - sk.t * 0.9; // 下の具材の上に重ねる（てんこ盛りOK）
+    else [cx, cy] = clampToSurface(surf, px, py);
+    out.push({ id: def.id, x: cx, y: cy, h: sk.h, s: sc, r: (r() * 2 - 1) * def.rot, v: Math.floor(r() * NV * 4), g: group });
   };
   if (def.kind === 'sprinkle') {
     const n = Math.max(1, Math.round(def.count * (0.6 + size * 0.4)));

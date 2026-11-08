@@ -84,8 +84,10 @@ function composite() {
   sctx.drawImage(renderBase(st, stage.width), 0, 0);
   sctx.drawImage(layer, 0, 0);
 }
+let selGrp = [];
 function addItems(list) {
   st.items.push(...list); st.ver++;
+  if (list.length && ING_MAP[list[0].id].kind !== 'sauce') selGrp = list;
   renderItems(layer.getContext('2d'), list, layer.width / 1000);
   composite();
 }
@@ -176,11 +178,11 @@ function setTool(t) { tool = t; $$('#toolSeg button').forEach((b) => b.classList
 $$('#toolSeg button').forEach((b) => (b.onclick = () => setTool(b.dataset.tool)));
 function updateHint() {
   const h = $('#topHint');
-  if (tool === 'move') { h.textContent = '✋ のせた具材をドラッグして位置を調整できるよ'; return; }
+  if (tool === 'move') { h.textContent = '✋ 具材をドラッグで移動。触った具材は「回転」ボタンで向きを変えられるよ'; return; }
   if (tool === 'erase') { h.textContent = '🧽 とりたい具材をタップ（なぞるとまとめて取れる）'; return; }
   const d = sel && ING_MAP[sel];
   if (!d) { h.textContent = '👆 まずは具材をえらんでね'; return; }
-  h.innerHTML = `<b>${d.name}</b>：` + (d.kind === 'piece' ? 'ごはんの上をタップしてのせてね' : d.kind === 'sprinkle' ? 'タップ or なぞってパラパラ散らそう' : 'なぞってかけてね（とろ〜り）');
+  h.innerHTML = `<b>${d.name}</b>：` + (d.kind === 'piece' ? 'タップしてのせてね（具材の上に重ねて、てんこ盛りもOK！）' : d.kind === 'sprinkle' ? 'タップ or なぞってパラパラ散らそう' : 'なぞってかけてね（とろ〜り）');
 }
 const sizeR = $('#sizeRange');
 
@@ -212,7 +214,7 @@ stage.addEventListener('pointerdown', (e) => {
         // 同じグループ（散らしたもの）はまとめて動かす
         const grp = ING_MAP[it.id].kind === 'sprinkle' ? st.items.filter((o) => o.g === it.g && o.id === it.id) : [it];
         st.items = st.items.filter((o) => !grp.includes(o)).concat(grp);
-        drag = { mode: 'move', grp, lx: x, ly: y };
+        drag = { mode: 'move', grp, lx: x, ly: y }; selGrp = grp;
         scheduleFull();
         break;
       }
@@ -235,7 +237,7 @@ stage.addEventListener('pointermove', (e) => {
   } else if (drag.mode === 'move') {
     const dx = x - drag.lx, dy = y - drag.ly;
     const surf = surface(st);
-    for (const it of drag.grp) { const [nx, ny] = clampToSurface(surf, it.x + dx, it.y + dy); it.x = nx; it.y = ny; }
+    for (const it of drag.grp) { if (it.h > 0) { it.x += dx; it.y += dy; } else { const [nx, ny] = clampToSurface(surf, it.x + dx, it.y + dy); it.x = nx; it.y = ny; } }
     drag.lx = x; drag.ly = y; st.ver++;
     scheduleFull();
   } else if (drag.mode === 'erase') eraseAt(x, y);
@@ -244,6 +246,18 @@ const endDrag = () => { drag = null; };
 stage.addEventListener('pointerup', endDrag);
 stage.addEventListener('pointercancel', endDrag);
 
+function rotateSel(deg) {
+  const live = selGrp.filter((it) => st.items.includes(it));
+  if (!live.length) { toast('「うごかす」で具材をタップしてから回転してね'); return; }
+  const a = (deg * Math.PI) / 180;
+  if (live.length === 1) live[0].r += a;
+  else {
+    const cx = live.reduce((v, i) => v + i.x, 0) / live.length, cy = live.reduce((v, i) => v + i.y, 0) / live.length;
+    for (const it of live) { const dx = it.x - cx, dy = (it.y - cy) / 0.8; it.x = cx + dx * Math.cos(a) - dy * Math.sin(a); it.y = cy + (dx * Math.sin(a) + dy * Math.cos(a)) * 0.8; it.r += a; }
+  }
+  st.ver++; scheduleFull();
+}
+$$('[data-rot]').forEach((b) => (b.onclick = () => rotateSel(+b.dataset.rot)));
 $('#undoBtn').onclick = () => {
   if (!st.items.length) return;
   const g = Math.max(...st.items.map((i) => i.g));
@@ -559,3 +573,13 @@ window.addEventListener('resize', () => {
   clearTimeout(rt);
   rt = setTimeout(() => { if (step === 1 || step === 3) renderStage(false); if (step === 4) renderEdit(); }, 150);
 });
+
+/* ダブルタップズーム禁止 */
+document.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });
+document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+let lastTouch = 0;
+document.addEventListener('touchend', (e) => {
+  const now = Date.now();
+  if (now - lastTouch < 350 && !e.target.closest('input, textarea')) e.preventDefault();
+  lastTouch = now;
+}, { passive: false });
