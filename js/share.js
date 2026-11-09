@@ -91,9 +91,9 @@ export const TEMPLATES = [
   (o) => `ゆるっと丼づくり🌸\n本日の一杯は「${o.name}」です\n${o.list}\n#おいしい顔`,
 ];
 
-export function buildText(st, name, tplIndex, tags, url) {
+export function buildText(st, name, tplIndex, tags, url, extra = '') {
   const names = ingredientNames(st.items);
   const list = names.length ? (names.length > 7 ? names.slice(0, 7).join('・') + ' ほか' : names.join('・')) : '具なし（素材の味）';
   const body = TEMPLATES[tplIndex % TEMPLATES.length]({ name, rice: st.rice, label: riceLabel(st.rice), list });
-  return `${body}\n\n${tags.map((t) => '#' + t).join(' ')}${url ? '\n' + url : ''}`;
+  return `${body}${extra ? '\n' + extra : ''}\n\n${tags.map((t) => '#' + t).join(' ')}${url ? '\n' + url : ''}`;
 }

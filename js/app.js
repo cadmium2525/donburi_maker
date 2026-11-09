@@ -5,6 +5,7 @@ import { renderBase, renderItems, renderFull, makeItems, itemHit, icon, surface,
 import { RiceStep, riceLabel } from './rice.js';
 import { ADJ, PRESETS, zeroAdj, applyFilter, FRAMES, drawFrame, STICKERS, drawSticker, hitSticker } from './edit.js';
 import { guessName, buildTags, buildText, TEMPLATES } from './share.js';
+import { judge, drawRadar } from './score.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -60,6 +61,7 @@ $('#logoBtn').onclick = () => showTitle();
 $('#backBtn').onclick = () => go(step - 1);
 $('#nextBtn').onclick = () => {
   if (step === 2 && st.rice === 0) toast('ごはんなし…！それもまた一興🍚');
+  if (step === 3) { showJudge(); return; }
   go(step + 1);
 };
 $$('#steps li').forEach((li) => (li.onclick = () => { if (step > 0) go(+li.dataset.step); }));
@@ -287,7 +289,7 @@ function compose(c, N, showSel) {
   c.setTransform(1, 0, 0, 1, 0, 0);
   c.clearRect(0, 0, N, N);
   drawFrame(c, st.edit.frame, N, getProcessed(N), currentName(), st.edit.frameColor);
-  st.edit.stickers.forEach((s, i) => { if (s.type === 'title') s.v = currentName(); drawSticker(c, s, N, showSel && i === selSticker); });
+  st.edit.stickers.forEach((s, i) => { if (s.type === 'title') s.v = currentName(); if (s.type === 'score' && st.score) { s.total = st.score.total; s.title = st.score.title; } drawSticker(c, s, N, showSel && i === selSticker); });
 }
 function editPx() { return Math.round(Math.min(1080, (ev.clientWidth || 480) * DPR())); }
 let editRaf = false;
@@ -351,10 +353,11 @@ function buildStamps() {
     b.className = 'stamp ' + s.type;
     if (s.type === 'text') { b.textContent = s.v; b.style.background = s.col; }
     else if (s.type === 'emoji') b.textContent = s.v;
-    else b.textContent = s.type === 'sparkle' ? '✦ キラキラ' : '♡ ハート散らし';
+    else b.textContent = s.type === 'score' ? '🏅 採点バッジ' : s.type === 'sparkle' ? '✦ キラキラ' : '♡ ハート散らし';
     b.onclick = () => {
       const r = Math.random;
-      const size = s.type === 'emoji' ? 0.1 : s.type === 'text' ? 0.05 : 0.09;
+      if (s.type === 'score' && !st.score) st.score = judge(st);
+      const size = s.type === 'emoji' ? 0.1 : s.type === 'text' ? 0.05 : s.type === 'score' ? 0.1 : 0.09;
       st.edit.stickers.push({ ...s, x: 0.25 + r() * 0.5, y: 0.2 + r() * 0.6, size, rot: (r() - 0.5) * 0.5 });
       selSticker = st.edit.stickers.length - 1;
       updateSelTools(); renderEdit();
@@ -474,7 +477,8 @@ function refreshTags() {
 }
 function refreshText() {
   const tags = st.tags.filter((t) => !st.tagOff.has(t));
-  $('#postText').value = buildText(st, currentName(), st.tpl, tags, pageUrl());
+  const sc = st.score && $('#scoreChk').checked ? `🏅 丼メーカー診断：${st.score.total}点「${st.score.title}」` : '';
+  $('#postText').value = buildText(st, currentName(), st.tpl, sc ? tags.concat('丼メーカー診断') : tags, pageUrl(), sc);
 }
 async function refreshImage() {
   finalBlob = await exportImage();
@@ -538,7 +542,7 @@ $('#threadsBtn').onclick = () => { copyText(true); openWin('https://www.threads.
 $('#lineBtn').onclick = () => openWin('https://line.me/R/share?text=' + encodeURIComponent($('#postText').value));
 $('#againBtn').onclick = () => {
   if (!confirm('新しい丼をつくりますか？（いまの丼は消えます）')) return;
-  Object.assign(st, { rice: 0, items: [], group: 0, ver: st.ver + 1, name: '', nameEdited: false, tagOff: new Set(), custom: [], tpl: 0 });
+  Object.assign(st, { score: null, rice: 0, items: [], group: 0, ver: st.ver + 1, name: '', nameEdited: false, tagOff: new Set(), custom: [], tpl: 0 });
   st.edit = { preset: 'natural', adj: zeroAdj(), frame: 'none', frameColor: '#ffd6e2', chopsticks: true, steam: 0.7, stickers: [] };
   selSticker = -1;
   $('#chopChk').checked = true; $('#steamRange').value = 0.7;
@@ -583,3 +587,34 @@ document.addEventListener('touchend', (e) => {
   if (now - lastTouch < 350 && !e.target.closest('input, textarea')) e.preventDefault();
   lastTouch = now;
 }, { passive: false });
+
+/* =============== 採点 =============== */
+function showJudge() {
+  st.score = judge(st);
+  const sc = st.score, m = $('#judge');
+  m.hidden = false; m.classList.remove('done');
+  $('#jName').textContent = sc.name;
+  $('#jScore').textContent = '0';
+  $('#jTitle').textContent = ''; $('#jComment').textContent = '';
+  $('#jKcal').textContent = sc.kcal;
+  const cv = $('#jRadar'); cv.width = cv.height = 520; cv.getContext('2d').clearRect(0, 0, 520, 520);
+  setTimeout(() => {
+    m.classList.add('done');
+    const t0 = performance.now();
+    const tick = (t) => {
+      const u = Math.min(1, (t - t0) / 900);
+      $('#jScore').textContent = Math.round(sc.total * (1 - Math.pow(1 - u, 3)));
+      drawRadar(cv, sc.axes.map((a) => ({ ...a, v: Math.round(a.v * u) })));
+      if (u < 1) requestAnimationFrame(tick);
+      else { $('#jTitle').textContent = '称号：' + sc.title; $('#jComment').textContent = sc.comment; }
+    };
+    requestAnimationFrame(tick);
+  }, 1300);
+}
+$('#jNext').onclick = () => { $('#judge').hidden = true; go(4); };
+$('#jMore').onclick = () => { $('#judge').hidden = true; };
+$('#jBadge').onclick = () => {
+  if (!st.edit.stickers.some((s) => s.type === 'score')) st.edit.stickers.push({ type: 'score', v: '採点バッジ', x: 0.84, y: 0.82, size: 0.1, rot: 0.12 });
+  $('#judge').hidden = true; go(4); toast('採点バッジを貼ったよ🏅');
+};
+$('#scoreChk').onchange = () => refreshText();

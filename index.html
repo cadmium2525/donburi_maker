@@ -153,6 +153,7 @@
         <div class="sub">ハッシュタグ <small>タップでON / OFF</small></div>
         <div class="chips tags" id="tagList"></div>
         <div class="row"><input class="input" id="tagAdd" placeholder="タグを追加（例：丼好きな人と繋がりたい）"><button class="btn sm" id="tagAddBtn">追加</button></div>
+        <label class="check"><input type="checkbox" id="scoreChk" checked> 投稿文に採点結果を入れる</label>
         <div class="sub">投稿文 <button class="mini" id="tplBtn">🔄 文面チェンジ</button></div>
         <textarea class="input" id="postText" rows="8"></textarea>
         <div class="share-btns">
@@ -173,6 +174,25 @@
     <button class="btn ghost" id="backBtn">‹ もどる</button>
     <button class="btn primary" id="nextBtn">つぎへ ›</button>
   </nav>
+  <div class="judge" id="judge" hidden>
+    <div class="judge-card">
+      <div class="judge-wait"><div class="judge-spin">🍚</div><p>審査員が試食中…</p></div>
+      <div class="judge-res">
+        <p class="judge-label">丼メーカー診断</p>
+        <h3 id="jName"></h3>
+        <div class="judge-score"><b id="jScore">0</b><span>点</span></div>
+        <p class="judge-title" id="jTitle"></p>
+        <canvas id="jRadar" width="520" height="520"></canvas>
+        <p class="judge-comment" id="jComment"></p>
+        <p class="judge-kcal">推定 <b id="jKcal">0</b> kcal</p>
+        <div class="judge-btns">
+          <button class="btn primary" id="jNext">加工へ ›</button>
+          <button class="btn" id="jBadge">🏅 バッジを貼って加工へ</button>
+          <button class="btn ghost" id="jMore">もうちょっと盛る</button>
+        </div>
+      </div>
+    </div>
+  </div>
   <div id="toast" role="status" aria-live="polite"></div>
   <script type="module" src="js/app.js"></script>
 </body>

@@ -172,3 +172,24 @@ textarea.input{resize:vertical;line-height:1.6;font-size:14px}
   .pane-title{font-size:17px;margin:2px 0 8px}
   .meter-g b{font-size:34px}
 }
+
+/* 採点 */
+.judge{position:fixed;inset:0;z-index:40;background:rgba(90,61,58,.45);backdrop-filter:blur(4px);display:grid;place-items:center;padding:16px}
+.judge-card{background:#fff;border-radius:28px;width:min(420px,100%);max-height:calc(100dvh - 32px);overflow:auto;padding:22px 20px;text-align:center;box-shadow:0 0 0 6px var(--pink3),0 20px 50px rgba(0,0,0,.25);animation:pop .35s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{from{transform:scale(.7);opacity:0}}
+.judge-res{display:none}
+.judge.done .judge-res{display:block}
+.judge.done .judge-wait{display:none}
+.judge-spin{font-size:64px;animation:spin 1s ease-in-out infinite}
+@keyframes spin{50%{transform:rotate(20deg) scale(1.15)}}
+.judge-wait p{font-weight:700;color:var(--ink2)}
+.judge-label{margin:0;color:var(--pink);font-weight:700;font-size:13px;letter-spacing:.1em}
+.judge-res h3{margin:4px 0 0;font-size:22px}
+.judge-score{color:var(--pink);font-weight:900;line-height:1}
+.judge-score b{font-size:80px}
+.judge-score span{font-size:22px}
+.judge-title{font-weight:900;background:linear-gradient(90deg,#ffe9a8,#ffd0dc);display:inline-block;padding:4px 16px;border-radius:99px;min-height:1.6em;margin:6px 0}
+.judge-res canvas{width:min(260px,70vw);display:block;margin:0 auto}
+.judge-comment{white-space:pre-line;font-size:14px;line-height:1.7;min-height:3em}
+.judge-kcal{font-size:12px;color:var(--ink2)}
+.judge-btns{display:grid;gap:8px;margin-top:10px}

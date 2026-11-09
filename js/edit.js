@@ -189,7 +189,7 @@ export const STICKERS = [
   { type: 'text', v: '飯テロ注意', col: '#ff5a4d' }, { type: 'text', v: 'Yummy!', col: '#a58bf0' },
   { type: 'text', v: '自信作です', col: '#4fc3a1' }, { type: 'text', v: 'おうち丼', col: '#f48fb1' },
   { type: 'text', v: 'つゆだく♡', col: '#c9915a' }, { type: 'text', v: '大盛り！', col: '#ff8a3d' },
-  { type: 'sparkle', v: 'キラキラ' }, { type: 'hearts', v: 'ハート散らし' },
+  { type: 'score', v: '採点バッジ' }, { type: 'sparkle', v: 'キラキラ' }, { type: 'hearts', v: 'ハート散らし' },
 ];
 
 function measureSticker(c, s, N) {
@@ -200,6 +200,7 @@ function measureSticker(c, s, N) {
     const w = c.measureText(s.v).width;
     return s.type === 'title' ? { w: w + size * 0.4, h: size * 1.3 } : { w: w + size * 1.1, h: size * 1.7 };
   }
+  if (s.type === 'score') return { w: size * 2.2, h: size * 2.2 };
   return { w: size * 2.4, h: size * 2.4 };
 }
 function fontFor(s, size) {
@@ -234,6 +235,24 @@ export function drawSticker(c, s, N, selected) {
     c.strokeText(s.v, 0, 0);
     c.shadowColor = 'transparent';
     c.fillStyle = s.col || '#ff6f91'; c.fillText(s.v, 0, 0);
+  } else if (s.type === 'score') {
+    const R0 = m.w / 2;
+    c.shadowColor = 'rgba(0,0,0,.2)'; c.shadowBlur = size * 0.2; c.shadowOffsetY = size * 0.06;
+    c.beginPath();
+    for (let i = 0; i < 32; i++) { const a = (i / 32) * TAU, rr = i % 2 ? R0 * 0.9 : R0; c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+    c.closePath(); c.fillStyle = '#ffd36b'; c.fill();
+    c.shadowColor = 'transparent';
+    c.beginPath(); c.arc(0, 0, R0 * 0.78, 0, TAU); c.fillStyle = '#fff'; c.fill();
+    c.lineWidth = R0 * 0.05; c.strokeStyle = '#ff6f91'; c.stroke();
+    c.fillStyle = '#ff6f91'; c.font = `900 ${R0 * 0.62}px "Zen Maru Gothic", sans-serif`;
+    c.fillText(s.total ?? '?', 0, -R0 * 0.08);
+    c.font = `700 ${R0 * 0.17}px "Zen Maru Gothic", sans-serif`; c.fillStyle = '#5a3d3a';
+    c.fillText('点', R0 * 0.5, R0 * 0.12);
+    const t = s.title || '';
+    c.font = `700 ${R0 * Math.min(0.17, 1.3 / Math.max(1, t.length))}px "Zen Maru Gothic", sans-serif`;
+    c.fillText(t, 0, R0 * 0.42);
+    c.font = `700 ${R0 * 0.12}px "Zen Maru Gothic", sans-serif`; c.fillStyle = '#b08a84';
+    c.fillText('丼メーカー診断', 0, -R0 * 0.55);
   } else if (s.type === 'sparkle') {
     const r = rng(7);
     for (let i = 0; i < 9; i++) {
